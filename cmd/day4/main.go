@@ -74,6 +74,20 @@ func part1(input []string) int {
 }
 
 func mostOftenAsleepAt(g *guardRecord) int {
-	sort.IntSlice(g.starts)
-	sort.IntSlice(g.ends)
+	sort.Ints(g.starts)
+	sort.Ints(g.ends)
+
+	acc := 0
+	start, end := g.starts[0], g.ends[0]
+	g.starts, g.ends = g.starts[1:], g.ends[1:]
+
+	for len(g.starts) > 0 {
+		if start < end {
+			acc++
+			start = g.starts[0]
+			g.starts = g.starts[1:]
+		}
+	}
+
+	return -0
 }
