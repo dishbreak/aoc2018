@@ -17,6 +17,7 @@ func main() {
 
 	sort.Strings(input)
 	fmt.Printf("Part 1: %d\n", part1(input))
+	fmt.Printf("Part 2: %d\n", part2(input))
 }
 
 type guardRecord struct {
@@ -27,6 +28,22 @@ type guardRecord struct {
 }
 
 func part1(input []string) int {
+	barracks := parseBarracks(input)
+	var g *guardRecord
+	max := -1
+	for _, val := range barracks {
+		if max < val.minsAsleep {
+			max = val.minsAsleep
+			g = val
+		}
+	}
+
+	m, _ := sleepiestMinute(g)
+
+	return g.id * m
+}
+
+func parseBarracks(input []string) map[int]*guardRecord {
 	var g *guardRecord
 	var lastStart int
 
@@ -58,36 +75,78 @@ func part1(input []string) int {
 				barracks[id] = g
 			}
 		case fallAsleep.MatchString(line):
-			pts := guardShift.FindStringSubmatch(line)
+			pts := fallAsleep.FindStringSubmatch(line)
 			start, _ := strconv.Atoi(pts[1])
 			g.starts = append(g.starts, start)
 			lastStart = start
 		case wakeUp.MatchString(line):
-			pts := guardShift.FindStringSubmatch(line)
+			pts := wakeUp.FindStringSubmatch(line)
 			end, _ := strconv.Atoi(pts[1])
 			g.ends = append(g.ends, end)
 			g.minsAsleep += end - lastStart
 		}
 	}
 
-	return 0
-}
-
-func mostOftenAsleepAt(g *guardRecord) int {
-	sort.Ints(g.starts)
-	sort.Ints(g.ends)
-
-	acc := 0
-	start, end := g.starts[0], g.ends[0]
-	g.starts, g.ends = g.starts[1:], g.ends[1:]
-
-	for len(g.starts) > 0 {
-		if start < end {
-			acc++
-			start = g.starts[0]
-			g.starts = g.starts[1:]
+	for id, g := range barracks {
+		if len(g.starts) == 0 || len(g.ends) == 0 {
+			delete(barracks, id)
 		}
 	}
 
-	return -0
+	return barracks
+}
+
+func sleepiestMinute(g *guardRecord) (int, int) {
+	sort.Ints(g.starts)
+	sort.Ints(g.ends)
+
+	starts := make([]int, len(g.starts))
+	copy(starts, g.starts)
+
+	ends := make([]int, len(g.ends))
+	copy(ends, g.ends)
+
+	acc := 0
+	start, end := starts[0], ends[0]
+	starts, ends = starts[1:], ends[1:]
+
+	max, atMin := -1, -1
+	for {
+		if start < end {
+			acc++
+			if acc > max {
+				max = acc
+				atMin = start
+			}
+			if len(starts) == 0 {
+				break
+			}
+			start = starts[0]
+			starts = starts[1:]
+			continue
+		}
+		acc--
+		end = ends[0]
+		ends = ends[1:]
+	}
+
+	return atMin, acc
+}
+
+func part2(input []string) int {
+	barracks := parseBarracks(input)
+
+	var g *guardRecord
+	minute := 0
+	max := -1
+	for _, val := range barracks {
+		m, count := sleepiestMinute(val)
+		if count > max {
+			g = val
+			max = count
+			minute = m
+		}
+	}
+
+	return g.id * minute
 }
