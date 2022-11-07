@@ -5,8 +5,6 @@ import (
 	"image"
 	"runtime"
 	"sort"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/dishbreak/aoc-common/lib"
@@ -19,49 +17,7 @@ func main() {
 	}
 
 	fmt.Printf("Part 1: %d\n", part1(input))
-}
-
-type locus struct {
-	min, max image.Point
-	pts      []image.Point
-}
-
-func (l locus) OnBoundary(p image.Point) bool {
-	return p.X == l.min.X || p.X == l.max.X || p.Y == l.min.Y || p.Y == l.max.Y
-}
-
-func toLocus(input []string) locus {
-	l := locus{
-		min: image.Pt(10000, 10000),
-		max: image.Pt(0, 0),
-		pts: make([]image.Point, 0),
-	}
-
-	for _, line := range input {
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, ", ")
-		x, _ := strconv.Atoi(parts[0])
-		y, _ := strconv.Atoi(parts[1])
-		p := image.Pt(x, y)
-		l.pts = append(l.pts, p)
-
-		if l.min.X > x {
-			l.min.X = x
-		} else if l.max.X < x {
-			l.max.X = x
-		}
-
-		if l.min.Y > y {
-			l.min.Y = y
-		} else if l.max.Y < y {
-			l.max.Y = y
-		}
-
-	}
-
-	return l
+	fmt.Printf("Part 2: %d\n", part2(input))
 }
 
 func generateLocations(l locus) <-chan image.Point {
@@ -176,4 +132,49 @@ func part1(input []string) int {
 	result := largestArea(l, nearestPts)
 
 	return <-result
+}
+
+func closestToAll(l locus, input <-chan image.Point, cutoff int) <-chan image.Point {
+	output := make(chan image.Point)
+
+	var wg sync.WaitGroup
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for loc := range input {
+				acc := 0
+				for _, pt := range l.pts {
+					acc += dist(loc, pt)
+				}
+				if acc >= cutoff {
+					continue
+				}
+				output <- loc
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(output)
+	}()
+
+	return output
+}
+
+func part2(input []string) int {
+	return safeRegionSize(input, 10000)
+}
+
+func safeRegionSize(input []string, cutoff int) int {
+	l := toLocus(input)
+	locs := generateLocations(l)
+	safestPts := closestToAll(l, locs, cutoff)
+
+	acc := 0
+	for _ = range safestPts {
+		acc++
+	}
+	return acc
 }
