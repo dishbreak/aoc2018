@@ -102,11 +102,7 @@ func evaluateNode(i *bufio.Scanner) (acc int) {
 	for n := 0; n < metaCt; n++ {
 		scan()
 		idx := getInt(i)
-		if idx == 0 {
-			continue
-		}
-
-		if idx > len(children) {
+		if idx == 0 || idx > len(children) {
 			continue
 		}
 
