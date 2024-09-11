@@ -173,7 +173,7 @@ func safeRegionSize(input []string, cutoff int) int {
 	safestPts := closestToAll(l, locs, cutoff)
 
 	acc := 0
-	for _ = range safestPts {
+	for range safestPts {
 		acc++
 	}
 	return acc
